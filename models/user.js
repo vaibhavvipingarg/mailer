@@ -4,8 +4,8 @@ var Schema       = mongoose.Schema;
 
 var userSchema   = new Schema({
 	email        : String,
-	stocks       : String,
+	stocks       : [String],
 	interval     : String
 });
 
-module.exports = mongoose.model('Users', userSchema);
+module.exports = mongoose.model('client', userSchema);
