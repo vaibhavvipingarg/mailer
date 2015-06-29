@@ -133,7 +133,8 @@ app.use(function(req, res, next) {
 });
 */
 /*--------------------Routing Over----------------------------*/
-app.listen(3001,function(){
+var port = Number(process.env.PORT || 3001);
+app.listen(port, function(){
 	start();
 	console.log("Express Started on Port 3001");
 });
