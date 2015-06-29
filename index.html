@@ -9,7 +9,7 @@ $(document).ready(function(){
     $(".send_email").click(function(){      
         to = $("#email").val();
         symbol = $("#symbol").val();
-        $.get("http://10.21.16.83:3001/register",{to:to,subject:symbol},function(data){
+        $.get("https://stockminder.herokuapp.com/register",{to:to,subject:symbol},function(data){
         if(data=="200")
         {
             $("#message").empty().html("Stock registered successfully");
