@@ -1,18 +1,20 @@
 <html>
 <head>
 <title>Node.JS Email application</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script><script>// <![CDATA[
 $(document).ready(function(){
     var from,to,subject,text;
-    $("#send_email").click(function(){      
-        to=$("#to").val();
-        subject=$("#subject").val();
-        text=$("#content").val();
-        $("#message").text("Sending E-mail...Please wait");
-        $.get("http://localhost:3001/register",{to:to,subject:subject,text:text},function(data){
+    $(".send_email").click(function(){      
+        to = $("#email").val();
+        symbol = $("#symbol").val();
+        $.get("http://10.21.16.83:3001/register",{to:to,subject:symbol},function(data){
         if(data=="200")
         {
-            $("#message").empty().html("User is registered successfully");
+            $("#message").empty().html("Stock registered successfully");
+            $("#stock_form").append('<div style="margin-top:10px;"><label style="margin-right:5px;">Try "AAPL" or "MSFT" or "GE":</label><input style="margin-right:5px;" type="text" id="symbol" class="input-" placeholder="Enter symbol">' + 
+                    '<button type="submit" class="btn btn-primary" data-loading-text="Loading quote data...">Monitor</button></div>');
         }
 
 });
@@ -22,11 +24,22 @@ $(document).ready(function(){
 </head>
 <body>
 <div id="container">
-<h1>Mailer In Node.JS</h1>
-<input id="to" type="text" placeholder="Enter E-mail ID where you want to send" />
-<input id="subject" type="text" placeholder="Write Subject" />
-<textarea id="content" cols="40" rows="5" placeholder="Write what you want to send"></textarea>
-<button id="send_email">Send Email</button>
-<span id="message"></span>
 </div>
+</div>
+<div class="container web">
+    <div class="row content">
+        <div class="span12">
+            <h3 class="page-header">Stock Minder</h3>
+            
+            <form id = "stock_form" class="well control-group form-inline" style="text-align: center;">
+                <label style = "margin-right: 73px;">Enter email address: </label>
+                <input type="text" id="email" class="input-" placeholder="Enter email" style = "width: 251px;">
+                <div style="margin-top:10px;">
+                    <label>Try "AAPL" or "MSFT" or "GE":</label>
+                    <input type="text" id="symbol" class="input-" placeholder="Enter symbol">
+                    <button type="button" class="btn btn-primary send_email" data-loading-text="Loading quote data...">Monitor</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

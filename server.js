@@ -5,7 +5,7 @@ var request = require('request');
 var configDB = require('./config/database.js');
 var mongoose   = require('mongoose');
 
-var client     = require('./models/user');
+var userStocks = require('./models/userStocks');
 /*
 Connect to DB
 */
@@ -41,11 +41,11 @@ app.get('/register', function(req, res) {
 		});			
 	}
 
-	client.findOne({ 'email' :  req.query.to }, function(err, user) {
+	userStocks.findOne({ 'email' :  req.query.to }, function(err, user) {
 		if (err)
 			res.send(err);
 		if (!user) {
-			user = new client();		// create a new instance of the Bear model
+			user = new userStocks();		// create a new instance of the Bear model
 			user.email = req.query.to;  // set the bears name (comes from the request)
 			user.stocks.push(req.query.subject);  // set the bears name (comes from the request)
 		} else if (user.stocks.indexOf[req.query.subject] === -1){
@@ -58,7 +58,6 @@ app.get('/register', function(req, res) {
 
 			getStockData(req.query.subject);
 			res.json("200");
-			start();
 		});		
 	});
 });
@@ -66,7 +65,7 @@ app.get('/register', function(req, res) {
 function start() {
 	//Loop over the users in the DB to send messages 
 	setInterval(function() {
-		 client.find(function(err, users) {
+		 userStocks.find(function(err, users) {
 			if (err)
 		  	  console.log(err);
 
@@ -74,7 +73,7 @@ function start() {
 		  		var user = users[i];
 		  		loopUsers(user._doc);
 		  	}
-		 }, 30000);
+		 }, 1000*60*5);
 	});
 }
 
@@ -85,7 +84,7 @@ function loopUsers(user){
 			subject : data.Symbol,
 			text : 'Last Price: ' + data.LastPrice + ', Change: ' + data.Change
 		};
-		if (stocks[data.Symbol] && ((stocks[data.Symbol] > data.LastPrice*1.15) || (stocks[data.Symbol] < data.LastPrice*.85))) {
+		if (stocks[data.Symbol] && ((stocks[data.Symbol] > data.LastPrice*1.03) || (stocks[data.Symbol] < data.LastPrice*.97))) {
 			fn(mailOptions);
 		}
 	}
@@ -114,8 +113,27 @@ function loopUsers(user){
 	getStockData(callbackFn)
 }
 
-/*--------------------Routing Over----------------------------*/
+/*// middleware to use for all requests
+app.use(function(req, res, next) {
+	// do logging
+	console.log('Something is happening.');
+	// Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', 'http://10.21.16.83:3001');
 
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+	next();
+});
+*/
+/*--------------------Routing Over----------------------------*/
 app.listen(3001,function(){
-console.log("Express Started on Port 3001");
+	start();
+	console.log("Express Started on Port 3001");
 });
