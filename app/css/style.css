@@ -1,0 +1,35 @@
+@media screen and (max-width: 500px) {
+    body {
+        background-color: lightblue;
+    }
+}
+
+.unMonitor{
+  position: relative;
+  margin-left: 50px;
+  /* background: url("../images/pause.png") no-repeat; */
+}
+
+.remove{
+  position: relative;
+  margin-left: 10px;
+  /* background: url("../images/delete.png") no-repeat; */
+}
+
+.stockRowNew{
+  margin-top: 10px;
+}
+
+.stockRow{
+  margin-top: 10px;
+}
+.actions{
+	display: inline-block;
+}
+
+.stockLabel{
+	display: inline-block;
+}
+.paused{
+  opacity: 0.5;
+}

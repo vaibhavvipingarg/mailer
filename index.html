@@ -2,23 +2,83 @@
 <head>
 <title>Stock Change Notification</title>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="/css/style.css">
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script><script>// <![CDATA[
 $(document).ready(function(){
     var from,to,subject,text;
-    $(".send_email").click(function(){      
-        to = $("#email").val();
-        symbol = $("#symbol").val();
-        $.get("https://stockminder.herokuapp.com/register",{to:to,subject:symbol},function(data){
-        if(data=="200")
-        {
-            $("#message").empty().html("Stock registered successfully");
-            $("#stock_form").append('<div style="margin-top:10px;"><label style="margin-right:5px;">Try "AAPL" or "MSFT" or "GE":</label><input style="margin-right:5px;" type="text" id="symbol" class="input-" placeholder="Enter symbol">' + 
-                    '<button type="submit" class="btn btn-primary" data-loading-text="Loading quote data...">Monitor</button></div>');
-        }
 
-});
-    });
+    function getUserInfo() {
+        //get all the user accounts
+        to = $("#email").val();
+        $.get("http://localhost:3000/user",{email:to}, function(res){
+            if(res.status == 200) {
+                var accounts = res.data;
+                for (var i =0 ; i < accounts.length; i++) {
+                   $("#stockInfo").append('<div class="row stockRow"><label class = "stockLabel" style="margin-right:5px;">'+accounts[i]+'</label>'+ 
+                      '<button type="button" class=" span4 btn btn-primary unMonitor" data-loading-text="Loading quote data...">Un-Monitor</button>'+
+                      '<button type="button" class="span4 btn btn-primary remove">Remove</button>'+'</div>');   
+                }
+
+                //Append the new form entry at the end
+                $(".stockForm").append('<div class="stockRowNew"><label style="margin-right:5px;">Try "AAPL" or "MSFT" or "GE":</label><input style="margin-right:5px;" type="text" id="symbol" class="input-" placeholder="Enter symbol">' + 
+                    '<button type="button" class="btn btn-primary monitor" data-loading-text="Loading quote data...">Monitor</button></div>');
+
+            } else {
+                $("#stockForm").append('<div class="stockRowNew"><label style="margin-right:5px;">Try "AAPL" or "MSFT" or "GE":</label><input style="margin-right:5px;" type="text" id="symbol" class="input-" placeholder="Enter symbol">' + 
+                    '<button type="button" class="btn btn-primary monitor" data-loading-text="Loading quote data...">Monitor</button></div>');
+            }
+        });
+    }
+
+    $('body').on('click', 'button.remove', (function(){      
+        to = $("#email").val();
+        symbol = this.parentNode.children[0].textContent;
+        var that = this;
+        $.post("http://localhost:3000/remove",{email:to, stock:symbol}, function(res){
+            if (res.status == 200) {
+                //remove the entry from the list
+                that.parentNode.removeChild(that.parentNode);
+            }
+        });
+    }));
+
+    //Event listener for the monitor case
+    $('body').on('click', 'button.monitor', (function(){      
+        to = $("#email").val();
+        symbol = this.parentNode.children[0].textContent;
+        $.get("http://localhost:3000/register",{to:to,subject:symbol},function(res){
+            if(res.status == 200) {
+                $("#stockInfo").append('<div class="stockRow"><label style="margin-right:5px;">'+accounts[i]+'</label>'+ 
+                      '<button type="button" class="btn btn-primary unMonitor" data-loading-text="Loading quote data...">Un-Monitor</button>'+
+                      '<button type="button" class="btn btn-primary remove">Remove</button>'+'</div>');   
+        }});
+    }));
+
+    $('body').on('click', 'button.paused', (function(){      
+        var that = this;
+        to = $("#email").val();
+        $.get("http://localhost:3000/register",{to:to,subject:symbol},function(res){
+            if(res.status == 200) {
+                that.parentNode.children[1].className = that.parentNode.children[1].className.replace(/\bpaused\b/,'unMonitor');
+                that.parentNode.children[1].innerText = "Monitor";
+        }});
+    }));
+
+    //Event listener for the unmonitor case
+    $('body').on('click', 'button.unMonitor', (function(){      
+        var to = $("#email").val();
+        var symbol = this.parentNode.children[0].textContent;
+        var that = this;
+        $.get("http://localhost:3000/unRegister",{to:to,subject:symbol},function(res){
+            if (res.status == 200) {
+                that.parentNode.children[1].className = that.parentNode.children[1].className.replace(/\bunMonitor\b/,'paused');
+                that.parentNode.children[1].innerText = "Paused";
+            }
+        });
+    }));
+
+    $('body').on('click', 'button.login', getUserInfo);
 });
 </script>
 </head>
@@ -30,15 +90,11 @@ $(document).ready(function(){
     <div class="row content">
         <div class="span12">
             <h3 class="page-header">Stock Minder <small> -know when the stocks rise and fall..</small> </h3>
-            
-            <form id = "stock_form" class="well control-group form-inline" style="text-align: center;">
+            <form id = "stock_form" class="well control-group form-inline stockForm" style="text-align: center;">
                 <label style = "margin-right: 73px;">Enter email address: </label>
                 <input type="text" id="email" class="input-" placeholder="Enter email" style = "width: 251px;">
-                <div style="margin-top:10px;">
-                    <label>Try "AAPL" or "MSFT" or "GE":</label>
-                    <input type="text" id="symbol" class="input-" placeholder="Enter symbol">
-                    <button type="button" class="btn btn-primary send_email" data-loading-text="Loading quote data...">Monitor</button>
-                </div>
+                <button type="button" class="btn btn-primary login">Log-in</button>
+                <div id="stockInfo"></div>
             </form>
         </div>
     </div>

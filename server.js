@@ -5,7 +5,7 @@ var request = require('request');
 var configDB = require('./config/database.js');
 var mongoose   = require('mongoose');
 
-var userStocks = require('./models/userStocks');
+var users = require('./models/userStocks');
 /*
 Connect to DB
 */
@@ -29,26 +29,66 @@ var stocks = {};
 app.get('/',function(req,res){
 	res.sendfile('index.html');
 });
+app.use(express.static(__dirname + '/app'));
 
 // create a shop (accessed at POST http://localhost:8080/api/shops)
+app.get('/user', function(req, res) {
+	users.findOne({ 'email' :  req.query.email }, function(err, user) {
+		if (err)
+			res.send(err);
+
+		if (!user) {
+			res.json({status: 200, data: []});
+		} else {
+			res.json({status: 200, data: user.stocks});
+		}		
+	});	
+});
+
+app.get('/unregister', function(req, res) {
+	var to = req.query.to;
+	var stock = req.query.symbol;
+
+	users.findOne({ 'email' : to }, function(err, user) {
+		if (err)
+			res.send(err);
+
+		if (user) {
+			var stockIndex = user.stocks.indexOf(stock);
+			if (stockIndex !== -1) {
+				user.stocks.splice(stockIndex, 1);
+			}
+
+			user.save(function(err) {
+			if (err)
+				res.send({status: 501, data: []});
+
+				res.json({status: 200, data: []});
+			});		
+		}
+	});
+});
+
 app.get('/register', function(req, res) {
 	function getStockData(tckr) {
 		//loop over all the stocks for the user
-		request('http://dev.markitondemand.com/Api/v2/Quote/json?symbol=' + tckr, function (error, response, body) {
-		  if (!error && response.statusCode == 200) {
-		  	  stocks[tckr] = JSON.parse(body).LastPrice;
+		var url = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quote%20where%20symbol%20in%20(%22' + tckr + '%22)&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
+		request(url, function (error, response, body) {
+		  var data = JSON.parse(body).query;
+		  if (!error && data != null && data.results != null) {
+		  	  stocks[tckr] = data.results.quote.LastTradePriceOnly;
 	      }
 		});			
 	}
 
-	userStocks.findOne({ 'email' :  req.query.to }, function(err, user) {
+	users.findOne({ 'email' :  req.query.to }, function(err, user) {
 		if (err)
 			res.send(err);
 		if (!user) {
-			user = new userStocks();		// create a new instance of the Bear model
+			user = new users();		// create a new instance of the Bear model
 			user.email = req.query.to;  // set the bears name (comes from the request)
 			user.stocks.push(req.query.subject);  // set the bears name (comes from the request)
-		} else if (user.stocks.indexOf[req.query.subject] === -1){
+		} else if (user.stocks.indexOf(req.query.subject) === -1){
 			user.stocks.push(req.query.subject);
 		}		
 
@@ -57,7 +97,7 @@ app.get('/register', function(req, res) {
 				res.send(err);
 
 			getStockData(req.query.subject);
-			res.json("200");
+			res.json({status: 200, data: req.query.subject});
 		});		
 	});
 });
@@ -65,7 +105,7 @@ app.get('/register', function(req, res) {
 function start() {
 	//Loop over the users in the DB to send messages 
 	setInterval(function() {
-		 userStocks.find(function(err, users) {
+		 users.find(function(err, users) {
 			if (err)
 		  	  console.log(err);
 
@@ -73,7 +113,7 @@ function start() {
 		  		var user = users[i];
 		  		loopUsers(user._doc);
 		  	}
-		 }, 1000*60*5);
+		 }, 300000);
 	});
 }
 
@@ -82,9 +122,14 @@ function loopUsers(user){
 		var mailOptions = {
 			to : user.email,
 			subject : data.Symbol,
-			text : 'Last Price: ' + data.LastPrice + ', Change: ' + data.Change
+			text : 'Last Price: ' + data.LastTradePriceOnly + ', Change: ' + data.Change
 		};
-		if (stocks[data.Symbol] && ((stocks[data.Symbol] > data.LastPrice*1.03) || (stocks[data.Symbol] < data.LastPrice*.97))) {
+		if (stocks[data.Symbol] === undefined) {
+			stocks[data.Symbol] = data.LastTradePriceOnly;;
+		}
+		if ((stocks[data.Symbol] > data.LastTradePriceOnly*1.03) || (stocks[data.Symbol] < data.LastTradePriceOnly*.97)) {
+			//Update the price
+	  	    stocks[data.Symbol] = data.LastTradePriceOnly;
 			fn(mailOptions);
 		}
 	}
@@ -92,12 +137,18 @@ function loopUsers(user){
 	function getStockData(fn) {
 		//loop over all the stocks for the user
 		for (var i = 0; i < user.stocks.length; i++) {
-			request('http://dev.markitondemand.com/Api/v2/Quote/json?symbol=' + user.stocks[i], function (error, response, body) {
-			  if (!error && response.statusCode == 200) {
-			  	  checkLogic(JSON.parse(body), fn);  
-			  	  stocks[JSON.parse(body).Symbol] = JSON.parse(body).LastPrice;
-		      }
-			});			
+			//loop over all the stocks for the user
+			var url = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quote%20where%20symbol%20in%20(%22' + user.stocks[i] + '%22)&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
+			request(url, function (error, response, body) {
+				if (!error) {
+						if (body) {
+						var data = JSON.parse(body).query;
+						if (!error && data != null && data.results != null) {
+					  	  checkLogic(JSON.parse(body).query.results.quote, fn);  
+					    }											
+					}
+				}
+			});
 		}
 	}
 
@@ -114,7 +165,7 @@ function loopUsers(user){
 }
 
 /*--------------------Routing Over----------------------------*/
-var port = Number(process.env.PORT || 8080);
+var port = Number(process.env.PORT || 3000);
 app.listen(port, function(){
 	start();
 	console.log("Express Started");
